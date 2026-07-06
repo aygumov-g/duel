@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    environment:
+      PHX_HOST: localhost
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+    ports:
+      - "4000:4000"
+    networks:
+      - reverse-proxy
+    restart: unless-stopped
+
+networks:
+  reverse-proxy:
+    external: true
