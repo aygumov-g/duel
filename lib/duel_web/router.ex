@@ -19,8 +19,9 @@ defmodule DuelWeb.Router do
   scope "/", DuelWeb do
     pipe_through(:browser)
 
-    get("/", RoomController, :index)
+    get("/room", RoomController, :index)
 
+    live("/", HomeLive)
     live("/room/:id", GameLive)
 
     # get("/", PageController, :home)
