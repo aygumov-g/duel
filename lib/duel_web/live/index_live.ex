@@ -1,4 +1,4 @@
-defmodule DuelWeb.HomeLive do
+defmodule DuelWeb.IndexLive do
   use DuelWeb, :live_view
 
   @impl true

@@ -38,6 +38,17 @@ defmodule Duel.Game.Room.Server do
     GenServer.call(via_tuple(room_id), {:check_answer, player_id, answer})
   end
 
+  @spec accepts_players?(String.t(), String.t()) :: boolean()
+  def accepts_players?(room_id, player_id) do
+    case Registry.lookup(Duel.GameRegistry, room_id) do
+      [{pid, _value}] ->
+        GenServer.call(pid, {:accepts_players?, player_id})
+
+      [] ->
+        false
+    end
+  end
+
   @spec leave(String.t(), String.t()) :: :ok
   def leave(room_id, player_id) do
     GenServer.cast(via_tuple(room_id), {:leave, player_id})
@@ -107,10 +118,28 @@ defmodule Duel.Game.Room.Server do
   end
 
   @impl true
+  def handle_call({:accepts_players?, player_id}, _from, state) do
+    can_join? =
+      Map.has_key?(state.players, player_id) or
+        (state.status == :waiting and map_size(state.players) < state.max_players)
+
+    {:reply, can_join?, state}
+  end
+
+  @impl true
   def handle_cast({:leave, player_id}, state) do
     if state.status in [:waiting, :game_over] and Map.has_key?(state.players, player_id) do
-      Logger.info("Player #{player_id} left. Shutting down empty/finished room #{state.room_id}.")
-      {:stop, :normal, state}
+      new_players = Map.delete(state.players, player_id)
+
+      if map_size(new_players) == 0 do
+        Logger.info("Room empty. Shutting down room #{state.room_id}.")
+        {:stop, :normal, state}
+      else
+        Logger.info("Player #{player_id} left. Room #{state.room_id} still alive.")
+        new_state = %{state | players: new_players}
+        broadcast_state(new_state)
+        {:noreply, new_state, next_timeout(new_state)}
+      end
     else
       {:noreply, state, next_timeout(state)}
     end
@@ -135,7 +164,7 @@ defmodule Duel.Game.Room.Server do
 
   @impl true
   def handle_info(:timeout, state) do
-    Logger.info("Closing room #{state.room_id} due to inactivity (status: #{state.status})")
+    Logger.info("Closing room #{state.room_id} due to inactivity (status: #{state.status}).")
     {:stop, :normal, state}
   end
 

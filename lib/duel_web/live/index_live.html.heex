@@ -1,0 +1,43 @@
+<div class="flex flex-col items-center justify-center min-h-[80vh] px-4 py-12">
+  <div class="max-w-md w-full space-y-10 text-center">
+    <div class="space-y-6">
+      <div class="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-xl shadow-orange-500/30 transform transition-transform hover:scale-105 duration-300">
+        <svg class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      </div>
+      <div class="space-y-2">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
+          Готов к дуэли?
+        </h1>
+        <p class="text-base md:text-lg text-zinc-500 dark:text-zinc-400 font-medium">
+          Нажимай быстрее соперников и набирай очки. <br class="hidden md:block"/> Докажи, что ты лучший.
+        </p>
+      </div>
+    </div>
+    <div class="pt-4 px-2">
+      <.link
+        navigate={~p"/room"}
+        class="group relative inline-flex items-center justify-center w-full py-4 px-8 text-lg font-bold text-white transition-all duration-300 ease-in-out bg-orange-500 rounded-2xl hover:bg-orange-400 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(249,115,22,0.4)] hover:shadow-[0_0_30px_rgba(249,115,22,0.6)]"
+      >
+        <span class="relative z-10 flex items-center gap-2">
+          Найти игру
+          <svg class="w-6 h-6 transition-transform duration-300 group-hover:translate-x-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </span>
+      </.link>
+    </div>
+    <div class="flex items-center justify-center gap-6 pt-6 mt-6 border-t border-zinc-200 dark:border-zinc-800/60 text-sm font-semibold text-zinc-400 dark:text-zinc-500">
+      <div class="flex items-center gap-2">
+        <div class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+        Онлайн
+      </div>
+      <div class="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-600"></div>
+      <div class="flex items-center gap-1.5">
+         <span class="text-lg">⚡️</span>
+         Быстрый подбор
+      </div>
+    </div>
+  </div>
+</div>

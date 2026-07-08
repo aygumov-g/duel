@@ -21,7 +21,7 @@ defmodule DuelWeb.Router do
 
     get("/room", RoomController, :index)
 
-    live("/", HomeLive)
+    live("/", IndexLive)
     live("/room/:id", GameLive)
 
     # get("/", PageController, :home)

@@ -151,9 +151,9 @@
           <div class="flex items-center gap-1.5 bg-white dark:bg-zinc-900/60 px-2.5 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-700 shadow-sm">
             <%= for i <- 1..@game_state.max_players do %>
               <%= if i <= MapSet.size(@game_state.rematch_votes) do %>
-                <div class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.5)]"></div>
+                <div class="w-3 h-3 rounded-full bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.6)]"></div>
               <% else %>
-                <div class="w-2.5 h-2.5 rounded-full bg-zinc-200 dark:bg-zinc-700"></div>
+                <div class="w-3 h-3 rounded-full bg-zinc-200 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600"></div>
               <% end %>
             <% end %>
           </div>

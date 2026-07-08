@@ -8,7 +8,7 @@ defmodule Duel.Game.Room.State do
     players: %{},
     max_players: 2,
     rematch_votes: MapSet.new(),
-    time_left: 10
+    time_left: 60
   ]
 
   @type status :: :waiting | :playing | :game_over
@@ -78,7 +78,7 @@ defmodule Duel.Game.Room.State do
             players: reset_players,
             rematch_votes: MapSet.new(),
             current_problem: MathProblem.generate(),
-            time_left: 10
+            time_left: 60
         }
       else
         %{state | rematch_votes: new_votes}

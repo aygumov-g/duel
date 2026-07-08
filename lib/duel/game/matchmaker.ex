@@ -8,13 +8,10 @@ defmodule Duel.Game.Matchmaker do
   @type room_id :: String.t()
   @type player_id :: String.t()
 
-  defstruct [
-    # nil | {room_id(), player_id()}
-    waiting_room: nil
-  ]
+  defstruct waiting_rooms: []
 
   @type t :: %__MODULE__{
-          waiting_room: nil | {room_id(), player_id()}
+          waiting_rooms: [room_id()]
         }
 
   @spec start_link(keyword()) :: GenServer.on_start()
@@ -29,55 +26,42 @@ defmodule Duel.Game.Matchmaker do
 
   @impl true
   def init(:ok) do
-    Logger.info("Matchmaker service started successfully")
+    Logger.info("Matchmaker service started successfully.")
     {:ok, %__MODULE__{}}
   end
 
   @impl true
-  def handle_call(
-        {:find_or_create_room, player_id},
-        _from,
-        %__MODULE__{waiting_room: nil} = state
-      ) do
-    case create_new_room() do
-      {:ok, room_id} ->
-        new_state = %{state | waiting_room: {room_id, player_id}}
-        {:reply, {:ok, room_id}, new_state}
+  def handle_call({:find_or_create_room, player_id}, _from, state) do
+    case find_available_room(state.waiting_rooms, player_id) do
+      {:ok, room_id, updated_rooms} ->
+        {:reply, {:ok, room_id}, %{state | waiting_rooms: updated_rooms}}
 
       {:error, reason} ->
-        Logger.error("Matchmaker failed to spin up a new room: #{inspect(reason)}")
-        {:reply, {:error, :room_creation_failed}, state}
+        {:reply, {:error, reason}, state}
     end
   end
 
-  @impl true
-  def handle_call(
-        {:find_or_create_room, player_id},
-        _from,
-        %__MODULE__{waiting_room: {room_id, player_id}} = state
-      ) do
-    {:reply, {:ok, room_id}, state}
+  defp find_available_room([], _player_id) do
+    case create_new_room() do
+      {:ok, room_id} ->
+        {:ok, room_id, [room_id]}
+
+      {:error, reason} ->
+        Logger.error("Matchmaker failed to spin up a new room: #{inspect(reason)}")
+        {:error, :room_creation_failed}
+    end
   end
 
-  @impl true
-  def handle_call(
-        {:find_or_create_room, player_id},
-        _from,
-        %__MODULE__{waiting_room: {room_id, _old_player_id}} = state
-      ) do
-    if room_alive?(room_id) do
-      {:reply, {:ok, room_id}, %{state | waiting_room: nil}}
+  defp find_available_room([room_id | rest] = current_rooms, player_id) do
+    if RoomServer.accepts_players?(room_id, player_id) do
+      {:ok, room_id, current_rooms}
     else
-      Logger.warning("Matchmaker found a dead room #{room_id} in queue. Creating a fresh one...")
-
-      case create_new_room() do
-        {:ok, new_room_id} ->
-          new_state = %{state | waiting_room: {new_room_id, player_id}}
-          {:reply, {:ok, new_room_id}, new_state}
+      case find_available_room(rest, player_id) do
+        {:ok, found_room_id, updated_rest} ->
+          {:ok, found_room_id, updated_rest}
 
         {:error, reason} ->
-          Logger.error("Matchmaker failed to recreate room: #{inspect(reason)}")
-          {:reply, {:error, :room_creation_failed}, %{state | waiting_room: nil}}
+          {:error, reason}
       end
     end
   end
@@ -91,16 +75,6 @@ defmodule Duel.Game.Matchmaker do
 
       {:error, reason} ->
         {:error, reason}
-    end
-  end
-
-  defp room_alive?(room_id) do
-    case Registry.lookup(Duel.GameRegistry, room_id) do
-      [{_pid, _value}] ->
-        true
-
-      [] ->
-        false
     end
   end
 
