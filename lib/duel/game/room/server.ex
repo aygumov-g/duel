@@ -5,7 +5,7 @@ defmodule Duel.Game.Room.Server do
 
   alias Duel.Game.Room.State, as: RoomState
 
-  @empty_room_timeout :timer.seconds(30)
+  @empty_room_timeout :timer.minutes(5)
   @game_over_timeout :timer.minutes(2)
 
   @spec start_room(String.t()) :: DynamicSupervisor.on_start_child()

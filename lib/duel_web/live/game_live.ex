@@ -89,4 +89,14 @@ defmodule DuelWeb.GameLive do
         false
     end
   end
+
+  defp generate_qr_svg(url) do
+    url
+    |> EQRCode.encode()
+    |> EQRCode.svg(
+      color: "#000000",
+      shape_design: :default,
+      width: 160
+    )
+  end
 end
