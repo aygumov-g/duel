@@ -19,9 +19,14 @@ defmodule Duel.Game.Matchmaker do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  @spec find_or_create_room(player_id()) :: {:ok, room_id()} | {:error, atom()}
-  def find_or_create_room(player_id) do
-    GenServer.call(__MODULE__, {:find_or_create_room, player_id})
+  @spec find_or_create_room(player_id(), map()) :: {:ok, room_id()} | {:error, atom()}
+  def find_or_create_room(player_id, attrs \\ %{}) do
+    GenServer.call(__MODULE__, {:find_or_create_room, player_id, attrs})
+  end
+
+  @spec create_room(player_id(), map()) :: {:ok, room_id()} | {:error, atom()}
+  def create_room(player_id, attrs \\ %{}) do
+    GenServer.call(__MODULE__, {:create_room, player_id, attrs})
   end
 
   @impl true
@@ -31,8 +36,8 @@ defmodule Duel.Game.Matchmaker do
   end
 
   @impl true
-  def handle_call({:find_or_create_room, player_id}, _from, state) do
-    case find_available_room(state.waiting_rooms, player_id) do
+  def handle_call({:find_or_create_room, player_id, attrs}, _from, state) do
+    case find_available_room(state.waiting_rooms, player_id, attrs) do
       {:ok, room_id, updated_rooms} ->
         {:reply, {:ok, room_id}, %{state | waiting_rooms: updated_rooms}}
 
@@ -41,8 +46,20 @@ defmodule Duel.Game.Matchmaker do
     end
   end
 
-  defp find_available_room([], _player_id) do
-    case create_new_room() do
+  @impl true
+  def handle_call({:create_room, _player_id, attrs}, _from, state) do
+    case create_new_room(Map.put(attrs, :type, :private)) do
+      {:ok, room_id} ->
+        {:reply, {:ok, room_id}, state}
+
+      {:error, reason} ->
+        Logger.error("Failed to create private room: #{inspect(reason)}")
+        {:reply, {:error, :room_creation_failed}, state}
+    end
+  end
+
+  defp find_available_room([], _player_id, attrs) do
+    case create_new_room(attrs) do
       {:ok, room_id} ->
         {:ok, room_id, [room_id]}
 
@@ -52,13 +69,13 @@ defmodule Duel.Game.Matchmaker do
     end
   end
 
-  defp find_available_room([room_id | rest] = current_rooms, player_id) do
-    if RoomServer.accepts_players?(room_id, player_id) do
+  defp find_available_room([room_id | rest] = current_rooms, player_id, attrs) do
+    if RoomServer.can_join?(room_id, player_id, attrs) do
       {:ok, room_id, current_rooms}
     else
-      case find_available_room(rest, player_id) do
+      case find_available_room(rest, player_id, attrs) do
         {:ok, found_room_id, updated_rest} ->
-          {:ok, found_room_id, updated_rest}
+          {:ok, found_room_id, [room_id | updated_rest]}
 
         {:error, reason} ->
           {:error, reason}
@@ -66,10 +83,10 @@ defmodule Duel.Game.Matchmaker do
     end
   end
 
-  defp create_new_room do
+  defp create_new_room(attrs) do
     room_id = generate_room_id()
 
-    case RoomServer.start_room(room_id) do
+    case RoomServer.start_room(room_id, attrs) do
       {:ok, _pid} ->
         {:ok, room_id}
 

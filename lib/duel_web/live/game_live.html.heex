@@ -3,130 +3,137 @@
   <%= if @game_state.status == :waiting do %>
     <% room_url = DuelWeb.Endpoint.url() <> ~p"/room/#{@game_state.room_id}" %>
     <div class="w-full max-w-md mx-auto space-y-6 mb-8">
-      <div class="space-y-2">
-        <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-500 uppercase tracking-wide px-1">
-          Статус игры
-        </label>
-        <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/80 rounded-2xl p-6 shadow-sm space-y-4">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <span class="text-orange-500 text-xl animate-spin" style="animation-duration: 3s;">⏳</span>
-              <div class="flex flex-col">
-                <span class="text-zinc-900 dark:text-white font-bold text-base leading-tight">Ожидаем игроков...</span>
-                <span class="text-orange-500 dark:text-orange-400 text-xs font-medium mt-0.5 animate-pulse">
-                  Автоматический поиск активен
-                </span>
+      <%= if @game_state.type == :private do %>
+        <div class="space-y-2">
+          <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide px-1 text-center">
+            Приватная игра
+          </label>
+          <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/80 rounded-2xl shadow-sm overflow-hidden">
+            <div class="p-6 flex flex-col items-center space-y-5">
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 text-center font-medium">
+                Отправь эту ссылку другу, чтобы он смог присоединиться к твоей закрытой комнате
+              </p>
+              <div class="p-3 bg-white rounded-xl shadow-sm border border-zinc-100 transition-transform hover:scale-[1.02] duration-300">
+                <div class="w-40 h-40 flex items-center justify-center">
+                  <%= raw(generate_qr_svg(room_url)) %>
+                </div>
+              </div>
+              <div class="w-full flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 p-1.5 rounded-xl shadow-inner focus-within:border-orange-500/50 transition-colors">
+                <input
+                  type="text"
+                  readonly
+                  value={room_url}
+                  id="room-link-input"
+                  class="flex-1 min-w-0 bg-transparent border-0 text-xs px-2 text-zinc-500 dark:text-zinc-400 focus:ring-0 focus:outline-none font-mono overflow-ellipsis select-all"
+                />
+                <button
+                  type="button"
+                  data-url={room_url}
+                  onclick="
+                    navigator.clipboard.writeText(this.getAttribute('data-url'));
+                    const btn = this;
+                    const text = btn.querySelector('.btn-text');
+                    text.textContent = 'Готово!';
+                    btn.classList.replace('bg-white', 'bg-green-500');
+                    btn.classList.replace('dark:bg-zinc-800', 'dark:bg-green-600');
+                    btn.classList.replace('text-zinc-700', 'text-white');
+                    btn.classList.replace('dark:text-zinc-300', 'dark:text-white');
+                    setTimeout(() => {
+                      text.textContent = 'Копировать';
+                      btn.classList.replace('bg-green-500', 'bg-white');
+                      btn.classList.replace('dark:bg-green-600', 'dark:bg-zinc-800');
+                      btn.classList.replace('text-white', 'text-zinc-700');
+                      btn.classList.replace('dark:text-white', 'dark:text-zinc-300');
+                    }, 2000);
+                  "
+                  class="flex items-center justify-center px-3 py-1.5 text-xs font-bold text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all active:scale-[0.97]"
+                >
+                  <span class="btn-text">Копировать</span>
+                </button>
               </div>
             </div>
-            <div class="flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-900/60 px-2.5 py-1.5 rounded-xl border border-zinc-200/40 dark:border-zinc-800">
-              <%= for i <- 1..@game_state.max_players do %>
-                <%= if i <= map_size(@game_state.players) do %>
-                  <div class="w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.6)]"></div>
+            <div class="bg-zinc-50 dark:bg-zinc-900/50 px-6 py-4 border-t border-zinc-200 dark:border-zinc-700/80 flex items-center justify-between">
+              <span class="text-sm font-semibold text-zinc-600 dark:text-zinc-300 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+                <%= if @game_state.max_players == 2 do %>
+                  Ждём подключения...
                 <% else %>
-                  <div class="w-2.5 h-2.5 rounded-full bg-zinc-200 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600"></div>
+                  Ждём подключений...
                 <% end %>
+              </span>
+              <div class="flex items-center gap-1.5">
+                <%= for i <- 1..@game_state.max_players do %>
+                  <div class={if i <= map_size(@game_state.players), do: "w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)] animate-pulse", else: "w-2.5 h-2.5 rounded-full bg-zinc-200 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600"}></div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div class="space-y-2">
+          <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide px-1 text-center">
+            Поиск игры
+          </label>
+          <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/80 rounded-2xl p-8 shadow-sm flex flex-col items-center justify-center space-y-6">
+            <div class="relative flex items-center justify-center w-24 h-24">
+              <div class="absolute inset-0 border-4 border-orange-500/20 rounded-full animate-ping" style="animation-duration: 2s;"></div>
+              <div class="absolute inset-2 border-4 border-orange-500/40 rounded-full animate-pulse"></div>
+              <div class="relative z-10 text-4xl">🔍</div>
+            </div>
+            <div class="text-center space-y-1">
+              <h3 class="text-lg font-bold text-zinc-900 dark:text-white">{ if @game_state.max_players == 2, do: "Ищем соперника...", else: "Ищем соперников..."}</h3>
+              <p class="text-sm text-orange-500 dark:text-orange-400 font-medium mt-0.5 animate-pulse">Автоматический подбор</p>
+            </div>
+            <div class="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-900/60 px-4 py-2 rounded-xl border border-zinc-200/40 dark:border-zinc-800">
+              <%= for i <- 1..@game_state.max_players do %>
+                <div class={if i <= map_size(@game_state.players), do: "w-3 h-3 rounded-full bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.6)]", else: "w-3 h-3 rounded-full bg-zinc-200 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600"}></div>
               <% end %>
             </div>
           </div>
-          <button
-            phx-click="leave_room"
-            class="w-full py-3.5 text-sm font-bold text-zinc-600 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-200 dark:border-zinc-700 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 hover:border-red-200 dark:hover:border-red-500/30 hover:text-red-500 dark:hover:text-red-400 transition-all active:scale-[0.98]"
-          >
-            Отменить поиск и выйти
-          </button>
-          <p class="text-[11px] text-zinc-400 dark:text-zinc-400 text-center leading-relaxed px-2 font-medium">
-            💡 Игра начнется автоматически, как только подключится случайный игрок. Ты можешь просто подождать здесь.
-          </p>
         </div>
-      </div>
-      <div class="space-y-2">
-        <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-500 uppercase tracking-wide px-1">
-          Или сыграй с другом
-        </label>
-        <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/80 rounded-2xl p-6 shadow-sm flex flex-col items-center space-y-4">
-          <div class="p-3 bg-white rounded-xl shadow-sm border border-zinc-100 transition-transform hover:scale-[1.01] duration-300">
-            <div class="w-36 h-36 flex items-center justify-center">
-              <%= raw(generate_qr_svg(room_url)) %>
-            </div>
-          </div>
-          <p class="text-[11px] text-zinc-400 dark:text-zinc-400 text-center font-medium leading-relaxed px-4">
-            Чтобы не ждать случайного соперника, ты можешь отправить эту ссылку другу для прямой дуэли
-          </p>
-          <div class="w-full flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 p-1.5 rounded-xl shadow-inner focus-within:border-orange-500/30 transition-colors">
-            <input
-              type="text"
-              readonly
-              value={room_url}
-              id="room-link-input"
-              class="flex-1 min-w-0 bg-transparent border-0 text-xs px-2 text-zinc-400 dark:text-zinc-500 focus:ring-0 focus:outline-none font-mono overflow-ellipsis select-all"
-            />
-            <button
-              type="button"
-              data-url={room_url}
-              onclick="
-                navigator.clipboard.writeText(this.getAttribute('data-url'));
-                const btn = this;
-                const text = btn.querySelector('.btn-text');
-                text.textContent = 'Готово!';
-                btn.classList.remove('bg-white', 'dark:bg-zinc-800', 'text-zinc-700', 'dark:text-zinc-300');
-                btn.classList.add('bg-green-500', 'text-white');
-                setTimeout(() => {
-                  text.textContent = 'Копировать';
-                  btn.classList.remove('bg-green-500', 'text-white');
-                  btn.classList.add('bg-white', 'dark:bg-zinc-800', 'text-zinc-700', 'dark:text-zinc-300');
-                }, 2000);
-              "
-              class="flex items-center justify-center px-3 py-1.5 text-xs font-bold text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all active:scale-[0.97]"
-            >
-              <span class="btn-text">Копировать</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      <% end %>
+      <button
+        phx-click="leave_room"
+        class="w-full py-3.5 text-sm font-bold text-zinc-600 dark:text-zinc-300 bg-transparent border border-zinc-300 dark:border-zinc-700 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 hover:border-red-200 dark:hover:border-red-500/30 hover:text-red-500 dark:hover:text-red-400 transition-all active:scale-[0.98]"
+      >
+        <%= if @game_state.type == :private, do: "Удалить комнату и выйти", else: "Отменить поиск" %>
+      </button>
     </div>
   <% end %>
   <%= if @game_state.status == :playing do %>
     <div class="grid grid-cols-2 gap-4 mb-6">
       <div>
-        <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">
-          Осталось времени
-        </label>
-        <div class="p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm text-lg flex items-center">
-          <span class="text-zinc-600 dark:text-gray-300">Секунд: </span>
-          <span class="text-orange-500 ml-2 font-medium"><%= @game_state.time_left %></span>
+        <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">Осталось</label>
+        <div class="p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm text-lg flex items-center justify-between">
+          <span class="text-zinc-600 dark:text-gray-400 text-sm">Сек:</span>
+          <span class="text-orange-500 font-bold text-xl"><%= @game_state.time_left %></span>
         </div>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">
-          Твой счет
-        </label>
-        <div class="p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm text-lg flex items-center">
-          <span class="text-zinc-600 dark:text-gray-300">Очков: </span>
-          <span class="text-orange-500 ml-2 font-medium"><%= get_in(@game_state.players, [@player_id, :score]) || 0 %></span>
+        <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">Твой счет</label>
+        <div class="p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm text-lg flex items-center justify-between">
+          <span class="text-zinc-600 dark:text-gray-400 text-sm">Очки:</span>
+          <span class="text-orange-500 font-bold text-xl"><%= get_in(@game_state.players, [@player_id, :score]) || 0 %></span>
         </div>
       </div>
     </div>
     <div class="mb-8">
-      <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">
-        Текущий пример
-      </label>
+      <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">Пример</label>
       <div class="py-12 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm flex justify-center items-center">
-        <p class="text-5xl font-bold tracking-widest text-zinc-800 dark:text-white">
+        <p class="text-5xl md:text-6xl font-bold tracking-widest text-zinc-800 dark:text-white drop-shadow-sm">
           <%= @game_state.current_problem.question %>
-          <span class="text-zinc-400 dark:text-zinc-500 ml-2">=?</span>
+          <span class="text-zinc-300 dark:text-zinc-600 ml-2 font-light">= ?</span>
         </p>
       </div>
     </div>
     <div>
-      <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">
-        Варианты ответа
-      </label>
+      <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">Ответы</label>
       <div class="flex flex-row gap-4 w-full">
         <%= for option <- @game_state.current_problem.options do %>
           <button
             phx-click="answer"
             phx-value-ans={option.value}
-            class="flex-1 h-20 text-3xl font-bold text-zinc-700 dark:text-gray-200 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm rounded-xl hover:border-orange-500 dark:hover:border-orange-500 hover:text-orange-500 transition-all focus:outline-none active:scale-95"
+            class="flex-1 h-20 text-3xl font-bold text-zinc-700 dark:text-gray-200 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm rounded-xl hover:border-orange-500 dark:hover:border-orange-500 hover:text-orange-500 dark:hover:text-orange-400 transition-all focus:outline-none active:scale-95 active:bg-orange-50 dark:active:bg-orange-500/10"
           >
             <%= option.value %>
           </button>
@@ -136,25 +143,23 @@
   <% end %>
   <%= if @game_state.status == :game_over do %>
     <div class="mb-6">
-      <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">
-        Итоги дуэли
-      </label>
+      <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">Итоги дуэли</label>
       <% sorted_players =
         @game_state.players
         |> Enum.sort_by(fn {_id, data} -> Map.get(data, :score, 0) end, :desc)
         |> Enum.with_index(1)
       %>
-      <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm rounded-xl overflow-hidden flex flex-col">
-        <div class="px-5 py-4 border-b border-zinc-100 dark:border-zinc-700/60 flex gap-2 bg-zinc-50/50 dark:bg-zinc-800/50">
-          <span class="text-zinc-600 dark:text-gray-300 text-lg">Результат:</span>
-          <span class="text-orange-500 text-lg font-medium">Время вышло</span>
+      <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm rounded-xl overflow-hidden">
+        <div class="px-5 py-3 border-b border-zinc-100 dark:border-zinc-700/60 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-800/50">
+          <span class="text-zinc-500 dark:text-zinc-400 text-sm font-medium uppercase tracking-wider">Результат</span>
+          <span class="text-orange-500 text-sm font-bold uppercase tracking-wider animate-pulse">Время вышло</span>
         </div>
         <div class="flex flex-col">
           <%= for {{id, data}, rank} <- sorted_players do %>
             <% is_me = id == @player_id %>
             <div class={[
-              "px-5 py-4 border-b border-zinc-100 dark:border-zinc-700/60 flex items-center justify-between transition-colors",
-              is_me && "bg-orange-500/30 dark:bg-orange-500/10"
+              "px-5 py-4 flex items-center justify-between transition-colors border-b border-zinc-100 dark:border-zinc-700/60 last:border-0",
+              is_me && "bg-orange-50 dark:bg-orange-500/10"
             ]}>
               <div class="flex items-center gap-4">
                 <span class="text-2xl w-8 text-center drop-shadow-sm">
@@ -162,82 +167,67 @@
                     <% 1 -> %>🥇
                     <% 2 -> %>🥈
                     <% 3 -> %>🥉
-                    <% _ -> %>{rank}.
+                    <% _ -> %><span class="text-zinc-400 font-bold"><%= rank %>.</span>
                   <% end %>
                 </span>
                 <div class="flex items-center gap-2">
                   <span class={[
-                    "font-medium text-lg",
-                    is_me && "text-orange-600 dark:text-orange-400 font-bold",
+                    "font-bold text-lg",
+                    is_me && "text-orange-600 dark:text-orange-400",
                     !is_me && "text-zinc-700 dark:text-gray-200"
                   ]}>
                     <%= id %>
                   </span>
                   <%= if is_me do %>
-                    <span class="inline-flex items-center justify-center h-5 px-2 text-[12px] leading-none font-bold bg-orange-500 text-white rounded-md">
-                      Ты
-                    </span>
+                    <span class="inline-flex items-center justify-center h-5 px-2 text-[11px] uppercase tracking-wide font-bold bg-orange-500 text-white rounded-md">Ты</span>
                   <% end %>
                 </div>
               </div>
-              <div class="flex items-center gap-1.5">
+              <div class="flex items-center gap-1.5 bg-white dark:bg-zinc-900/50 px-3 py-1 rounded-lg border border-zinc-100 dark:border-zinc-700/50">
                 <span class={[
-                  "text-2xl font-bold",
+                  "text-xl font-black",
                   is_me && "text-orange-500",
                   !is_me && "text-zinc-800 dark:text-white"
                 ]}>
                   <%= Map.get(data, :score, 0) %>
                 </span>
-                <span class="text-xs text-zinc-500 dark:text-zinc-400 font-medium uppercase tracking-wide mt-1">очков</span>
+                <span class="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest mt-0.5">очков</span>
               </div>
             </div>
           <% end %>
         </div>
-        <div class="px-5 py-4 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-800/50">
+        <div class="px-5 py-4 flex flex-col sm:flex-row gap-3 sm:gap-0 justify-between items-center bg-zinc-50 dark:bg-zinc-900/80 border-t border-zinc-200 dark:border-zinc-700">
           <div class="flex gap-2 items-center">
-            <span class="text-zinc-600 dark:text-gray-300 text-sm font-medium">Реванш:</span>
+            <span class="text-zinc-600 dark:text-zinc-400 text-sm font-medium">Реванш:</span>
             <%= if @player_id in @game_state.rematch_votes do %>
-              <span class="text-orange-500 text-sm font-semibold">Ожидаем оппонента...</span>
+              <span class="text-orange-500 text-sm font-bold">Ожидаем оппонента...</span>
             <% else %>
-              <span class="text-zinc-500 dark:text-gray-500 text-sm">Ждем твое решение</span>
+              <span class="text-zinc-400 text-sm font-medium">Ждём твое решение</span>
             <% end %>
           </div>
-          <div class="flex items-center gap-1.5 bg-white dark:bg-zinc-900/60 px-2.5 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-700 shadow-sm">
+          <div class="flex items-center gap-1.5">
             <%= for i <- 1..@game_state.max_players do %>
-              <%= if i <= MapSet.size(@game_state.rematch_votes) do %>
-                <div class="w-3 h-3 rounded-full bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.6)]"></div>
-              <% else %>
-                <div class="w-3 h-3 rounded-full bg-zinc-200 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600"></div>
-              <% end %>
+              <div class={if i <= MapSet.size(@game_state.rematch_votes), do: "w-3 h-3 rounded-full bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.6)]", else: "w-3 h-3 rounded-full bg-zinc-200 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600"}></div>
             <% end %>
           </div>
         </div>
       </div>
     </div>
-    <%= if @player_id not in @game_state.rematch_votes do %>
-      <div class="mt-8 flex flex-col gap-3">
+    <div class="mt-8 flex flex-col gap-3">
+      <%= if @player_id not in @game_state.rematch_votes do %>
         <button
           phx-click="vote_rematch"
-          class="w-full py-4 text-lg font-bold text-white dark:text-zinc-900 bg-orange-500 rounded-xl hover:bg-orange-600 dark:hover:bg-orange-400 transition-colors shadow-lg shadow-orange-500/20 active:scale-[0.98]"
+          class="w-full py-4 text-lg font-bold text-white dark:text-zinc-900 bg-orange-500 rounded-xl hover:bg-orange-600 dark:hover:bg-orange-400 transition-all shadow-lg shadow-orange-500/20 active:scale-[0.98]"
         >
           Играть снова
         </button>
-        <button
-          phx-click="leave_room"
-          class="w-full py-3 text-sm font-semibold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-red-500 dark:hover:text-red-400 transition-colors active:scale-[0.98]"
-        >
-          Выйти в главное меню
-        </button>
-      </div>
-    <% else %>
-      <div class="mt-8">
-        <button
-          phx-click="leave_room"
-          class="w-full py-3 text-sm font-semibold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-red-500 dark:hover:text-red-400 transition-colors active:scale-[0.98]"
-        >
-          Отменить ожидание и выйти
-        </button>
-      </div>
-    <% end %>
+      <% end %>
+      <button
+        phx-click="leave_room"
+        class="w-full py-3.5 text-sm font-semibold text-zinc-600 dark:text-zinc-300 bg-transparent border border-zinc-300 dark:border-zinc-700 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-red-500 dark:hover:text-red-400 transition-colors active:scale-[0.98]"
+      >
+        <%= if @player_id in @game_state.rematch_votes, do: "Отменить ожидание и выйти", else: "Выйти в главное меню" %>
+      </button>
+    </div>
   <% end %>
 </div>

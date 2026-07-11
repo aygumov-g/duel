@@ -9,13 +9,14 @@ defmodule Duel.Game.Room.Server do
   @game_over_timeout :timer.minutes(2)
 
   @spec start_room(String.t()) :: DynamicSupervisor.on_start_child()
-  def start_room(room_id) do
-    DynamicSupervisor.start_child(Duel.GameSupervisor, {__MODULE__, room_id})
+  @spec start_room(String.t(), map()) :: DynamicSupervisor.on_start_child()
+  def start_room(room_id, attrs \\ %{}) do
+    DynamicSupervisor.start_child(Duel.GameSupervisor, {__MODULE__, {room_id, attrs}})
   end
 
-  @spec start_link(String.t()) :: GenServer.on_start()
-  def start_link(room_id) do
-    GenServer.start_link(__MODULE__, room_id, name: via_tuple(room_id))
+  @spec start_link(%{room_id: String.t(), attrs: map()}) :: GenServer.on_start()
+  def start_link({room_id, attrs}) do
+    GenServer.start_link(__MODULE__, {room_id, attrs}, name: via_tuple(room_id))
   end
 
   @spec get_state(String.t()) :: RoomState.t()
@@ -38,11 +39,11 @@ defmodule Duel.Game.Room.Server do
     GenServer.call(via_tuple(room_id), {:check_answer, player_id, answer})
   end
 
-  @spec accepts_players?(String.t(), String.t()) :: boolean()
-  def accepts_players?(room_id, player_id) do
+  @spec can_join?(String.t(), String.t(), map()) :: boolean()
+  def can_join?(room_id, player_id, attrs) do
     case Registry.lookup(Duel.GameRegistry, room_id) do
       [{pid, _value}] ->
-        GenServer.call(pid, {:accepts_players?, player_id})
+        GenServer.call(pid, {:can_join?, player_id, attrs})
 
       [] ->
         false
@@ -55,9 +56,9 @@ defmodule Duel.Game.Room.Server do
   end
 
   @impl true
-  def init(room_id) do
+  def init({room_id, attrs}) do
     Logger.info("Creating game room: #{room_id}")
-    {:ok, RoomState.new(room_id), @empty_room_timeout}
+    {:ok, RoomState.new(room_id, attrs), @empty_room_timeout}
   end
 
   @impl true
@@ -118,12 +119,23 @@ defmodule Duel.Game.Room.Server do
   end
 
   @impl true
-  def handle_call({:accepts_players?, player_id}, _from, state) do
-    can_join? =
-      Map.has_key?(state.players, player_id) or
-        (state.status == :waiting and map_size(state.players) < state.max_players)
+  def handle_call({:can_join?, player_id, attrs}, _from, state) do
+    attrs_match? =
+      Enum.all?(attrs, fn {key, value} ->
+        Map.get(state, key) == value
+      end)
 
-    {:reply, can_join?, state}
+    can? =
+      attrs_match? and
+        (Map.has_key?(state.players, player_id) or
+           (state.status == :waiting and
+              map_size(state.players) < state.max_players))
+
+    IO.puts("attrs_match?=#{attrs_match?} can?=#{can?}")
+    IO.inspect(attrs)
+    IO.inspect(state)
+
+    {:reply, can?, state}
   end
 
   @impl true

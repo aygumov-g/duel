@@ -4,30 +4,43 @@ defmodule Duel.Game.Room.State do
   defstruct [
     :room_id,
     :current_problem,
-    status: :waiting,
-    players: %{},
-    max_players: 2,
-    rematch_votes: MapSet.new(),
-    time_left: 60
+    :type,
+    :status,
+    :players,
+    :max_players,
+    :rematch_votes,
+    :duration,
+    :time_left
   ]
 
+  @type type :: :public | :private
   @type status :: :waiting | :playing | :game_over
   @type player :: %{score: non_neg_integer()}
 
   @type t :: %__MODULE__{
           room_id: String.t(),
           status: status(),
+          type: type(),
           players: %{String.t() => player()},
           max_players: pos_integer(),
           rematch_votes: MapSet.t(String.t()),
           current_problem: MathProblem.t() | nil,
+          duration: pos_integer(),
           time_left: non_neg_integer()
         }
 
   @spec new(String.t()) :: t()
-  def new(room_id) do
+  @spec new(String.t(), map()) :: t()
+  def new(room_id, attrs \\ %{}) do
     %__MODULE__{
       room_id: room_id,
+      type: Map.get(attrs, :type, :public),
+      status: :waiting,
+      players: %{},
+      duration: Map.get(attrs, :duration, 60),
+      time_left: Map.get(attrs, :duration, 60),
+      max_players: Map.get(attrs, :max_players, 2),
+      rematch_votes: MapSet.new(),
       current_problem: MathProblem.generate()
     }
   end
@@ -78,7 +91,7 @@ defmodule Duel.Game.Room.State do
             players: reset_players,
             rematch_votes: MapSet.new(),
             current_problem: MathProblem.generate(),
-            time_left: 60
+            time_left: state.duration
         }
       else
         %{state | rematch_votes: new_votes}
